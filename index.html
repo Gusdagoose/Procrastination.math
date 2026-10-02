@@ -19,28 +19,32 @@
 
     <header>
         <h1>Procrastination.math</h1>
-        <p> On Github ig</p>
+        <p>i got tired of google sites and moved to github</p>
     </header>
 
-    <div class="grid" id="game-list">Finding games...</div>
+    <div class="grid" id="game-list">Loading game assets...</div>
 
     <script>
         async function loadGames() {
             try {
-                // Pulls safely from the public developer tree architecture
+                // Fetches via a proxy-free public folder layout feed endpoint
                 const response = await fetch('https://github.com');
-                const data = await response.json();
                 
+                // If GitHub throttles the main connection, use the backup tree architecture seamlessly
+                if (!response.ok) {
+                    throw new Error('API restriction hit, switching to backup router');
+                }
+                
+                const files = await response.json();
                 const listDiv = document.getElementById('game-list');
                 listDiv.innerHTML = '';
                 let count = 0;
 
-                // Scan and process files
-                data.tree.forEach(file => {
-                    if (file.path.endsWith('.html') && file.path.toLowerCase() !== 'index.html') {
+                files.forEach(file => {
+                    // Pull any standalone HTML files, ignore the index loader page
+                    if(file.name.endsWith('.html') && file.name.toLowerCase() !== 'index.html') {
                         count++;
-                        // Clean layout display names by replacing dashes with spaces
-                        const gameName = file.path.replace('.html', '').replace(/[-_]/g, ' ').toUpperCase();
+                        const gameName = file.name.replace('.html', '').replace(/[-_]/g, ' ').toUpperCase();
                         
                         const card = document.createElement('a');
                         card.className = 'game-card';
@@ -53,11 +57,32 @@
                     }
                 });
 
-                if (count === 0) {
-                    listDiv.innerText = "No separate game HTML files found yet! Make sure your game files are uploaded here.";
+                if(count === 0) {
+                    listDiv.innerText = "No separate game files discovered in your main branch.";
                 }
             } catch (error) {
-                document.getElementById('game-list').innerText = "Failed to load automated arcade cards.";
+                // FALLBACK: If GitHub totally blocks the API, it reads your raw layout directly
+                try {
+                    const backupResponse = await fetch('https://github.com');
+                    const backupData = await backupResponse.json();
+                    const listDiv = document.getElementById('game-list');
+                    listDiv.innerHTML = '';
+                    let count = 0;
+
+                    backupData.tree.forEach(file => {
+                        if (file.path.endsWith('.html') && file.path.toLowerCase() !== 'index.html') {
+                            count++;
+                            const gameName = file.path.replace('.html', '').replace(/[-_]/g, ' ').toUpperCase();
+                            const card = document.createElement('a');
+                            card.className = 'game-card';
+                            card.href = file.path;
+                            card.innerHTML = `<div class="game-icon">🕹️</div><div>${gameName}</div>`;
+                            listDiv.appendChild(card);
+                        }
+                    });
+                } catch(e) {
+                    document.getElementById('game-list').innerText = "GitHub servers are busy. Please refresh the page in a few seconds.";
+                }
             }
         }
         loadGames();
