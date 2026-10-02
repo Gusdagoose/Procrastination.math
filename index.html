@@ -18,31 +18,41 @@
 <body>
 
     <header>
-        <h1>🎮 Procrastination.math</h1>
-        <p>Your ultimate zero-lag HTML game collection</p>
+        <h1>Procrastination.math</h1>
+        <p> on github now ig </p>
     </header>
 
     <div class="grid" id="game-list">Finding games...</div>
 
     <script>
+    <script>
         async function loadGames() {
             try {
-                // Uses a public proxy-free endpoint for the file layout list
-                const response = await fetch('https://github.com');
-                const files = await response.json();
+                // Scans your live website folder directly, bypassing GitHub's strict API rules
+                const response = await fetch('./');
+                const htmlText = await response.text();
+                
+                // Creates a temporary system to read the files on your page
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlText, 'text/html');
+                const links = doc.querySelectorAll('a');
+                
                 const listDiv = document.getElementById('game-list');
                 listDiv.innerHTML = '';
-
                 let count = 0;
-                files.forEach(file => {
-                    // Only process separate HTML files, ignoring the index launcher itself
-                    if(file.name.endsWith('.html') && file.name.toLowerCase() !== 'index.html') {
+
+                links.forEach(link => {
+                    const href = link.getAttribute('href');
+                    
+                    // Automatically filter and pull any file ending in .html (skipping the main index)
+                    if (href && href.endsWith('.html') && href.toLowerCase() !== 'index.html' && !href.startsWith('http')) {
                         count++;
-                        const gameName = file.name.replace('.html', '').replace(/[-_]/g, ' ').toUpperCase();
+                        // Clean up the name for the button
+                        const gameName = href.replace('.html', '').replace(/[-_]/g, ' ').toUpperCase();
                         
                         const card = document.createElement('a');
                         card.className = 'game-card';
-                        card.href = file.name;
+                        card.href = href;
                         card.innerHTML = `
                             <div class="game-icon">🕹️</div>
                             <div>${gameName}</div>
@@ -51,14 +61,16 @@
                     }
                 });
 
-                if(count === 0) {
-                    listDiv.innerText = "No separate game HTML files found in the root directory yet.";
+                if (count === 0) {
+                    listDiv.innerText = "No separate game HTML files found yet! Make sure your game files are uploaded here.";
                 }
             } catch (error) {
-                document.getElementById('game-list').innerText = "Automatic list generation is currently resolving connection layout rules.";
+                document.getElementById('game-list').innerText = "An error occurred generating your arcade list.";
             }
         }
         loadGames();
+    </script>
+
     </script>
 </body>
 </html>
