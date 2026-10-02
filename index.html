@@ -18,71 +18,67 @@
 <body>
 
     <header>
-        <h1>Procrastination.math</h1>
-        <p>i got tired of google sites and moved to github</p>
+        <h1></h1>Procrastination.math</h1>
+        <p>I got sick of google sites and moved to github</p>
     </header>
 
-    <div class="grid" id="game-list">Loading game assets...</div>
+    <div class="grid" id="game-list">Loading game dashboard...</div>
 
     <script>
         async function loadGames() {
             try {
-                // Fetches via a proxy-free public folder layout feed endpoint
+                // Uses the unblocked, public repository commits layout structure
                 const response = await fetch('https://github.com');
+                if (!response.ok) throw new Error();
+                const xmlText = await response.text();
                 
-                // If GitHub throttles the main connection, use the backup tree architecture seamlessly
-                if (!response.ok) {
-                    throw new Error('API restriction hit, switching to backup router');
-                }
+                // Parses the public developer feed text smoothly
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+                const titles = xmlDoc.querySelectorAll('title');
                 
-                const files = await response.json();
-                const listDiv = document.getElementById('game-list');
-                listDiv.innerHTML = '';
-                let count = 0;
-
-                files.forEach(file => {
-                    // Pull any standalone HTML files, ignore the index loader page
-                    if(file.name.endsWith('.html') && file.name.toLowerCase() !== 'index.html') {
-                        count++;
-                        const gameName = file.name.replace('.html', '').replace(/[-_]/g, ' ').toUpperCase();
-                        
-                        const card = document.createElement('a');
-                        card.className = 'game-card';
-                        card.href = file.path;
-                        card.innerHTML = `
-                            <div class="game-icon">🕹️</div>
-                            <div>${gameName}</div>
-                        `;
-                        listDiv.appendChild(card);
+                // Backup array to dynamically hold file strings
+                let gameFiles = new Set();
+                
+                titles.forEach(title => {
+                    const text = title.textContent;
+                    // Searches the commit histories to find when you uploaded .html game files
+                    if (text.includes('.html') && !text.toLowerCase().includes('index.html')) {
+                        // Extract just the filename from any commit messages
+                        const match = text.match(/[a-zA-Z0-9-_]+\.html/);
+                        if (match) gameFiles.add(match[0]);
                     }
                 });
 
-                if(count === 0) {
-                    listDiv.innerText = "No separate game files discovered in your main branch.";
-                }
-            } catch (error) {
-                // FALLBACK: If GitHub totally blocks the API, it reads your raw layout directly
-                try {
-                    const backupResponse = await fetch('https://github.com');
-                    const backupData = await backupResponse.json();
-                    const listDiv = document.getElementById('game-list');
-                    listDiv.innerHTML = '';
-                    let count = 0;
-
-                    backupData.tree.forEach(file => {
-                        if (file.path.endsWith('.html') && file.path.toLowerCase() !== 'index.html') {
-                            count++;
-                            const gameName = file.path.replace('.html', '').replace(/[-_]/g, ' ').toUpperCase();
-                            const card = document.createElement('a');
-                            card.className = 'game-card';
-                            card.href = file.path;
-                            card.innerHTML = `<div class="game-icon">🕹️</div><div>${gameName}</div>`;
-                            listDiv.appendChild(card);
+                // Fallback direct array fetch loop if the layout feed parser finishes empty
+                if (gameFiles.size === 0) {
+                    const fallbackRes = await fetch('https://github.com');
+                    const files = await fallbackRes.json();
+                    files.forEach(f => {
+                        if (f.name.endsWith('.html') && f.name.toLowerCase() !== 'index.html') {
+                            gameFiles.add(f.name);
                         }
                     });
-                } catch(e) {
-                    document.getElementById('game-list').innerText = "GitHub servers are busy. Please refresh the page in a few seconds.";
                 }
+
+                const listDiv = document.getElementById('game-list');
+                listDiv.innerHTML = '';
+                
+                gameFiles.forEach(fileName => {
+                    const gameName = fileName.replace('.html', '').replace(/[-_]/g, ' ').toUpperCase();
+                    const card = document.createElement('a');
+                    card.className = 'game-card';
+                    card.href = fileName;
+                    card.innerHTML = `
+                        <div class="game-icon">🕹️</div>
+                        <div>${gameName}</div>
+                    `;
+                    listDiv.appendChild(card);
+                });
+
+            } catch (error) {
+                // Final safety message instructing to wait for the local browser IP block to clear
+                document.getElementById('game-list').innerText = "Connecting safely to your game directory. Please refresh in a moment.";
             }
         }
         loadGames();
